@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Графики функций</title>
+<style>
+:root{--bg:#fff;--fg:#1a1a1a;--grid:#ddd;--c1:#d62728;--c2:#1f77b4;--c3:#2ca02c;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#161616;--fg:#eee;--grid:#3a3a3a;--c1:#ff6b6b;--c2:#5aa9e6;--c3:#5fd35f;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#161616;--fg:#eee;--grid:#3a3a3a;--c1:#ff6b6b;--c2:#5aa9e6;--c3:#5fd35f;color-scheme:dark}
+html,body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+body{padding:12px}
+canvas{width:100%;height:60vh;display:block}
+.leg{font-size:13px;margin:8px 0;line-height:1.6}
+.leg i{display:inline-block;width:14px;height:3px;margin-right:6px;vertical-align:middle}
+.row{display:flex;align-items:center;gap:10px;margin-top:8px}
+input[type=range]{flex:1;height:32px}
+input[type=number]{width:80px;font-size:16px;padding:4px;background:var(--bg);color:var(--fg);border:1px solid var(--grid);border-radius:6px}
+#info{font-size:14px;margin-top:6px}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="leg">
+<div><i style="background:var(--c1)"></i>y=100·Φ(ln(x/273.5)/1.37)</div>
+<div><i style="background:var(--c2)"></i>y=100·Φ(ln(x/564.7)/1.13)</div>
+<div><i style="background:var(--c3)"></i>x = <span id="lx">850</span>, 0 ≤ y ≤ 100</div>
+</div>
+<div class="row"><b>X</b>
+<input id="s" type="range" min="1" max="3000" step="1" value="850">
+<input id="n" type="number" min="1" max="3000" value="850"></div>
+<div id="info"></div>
+<script>
+const XMAX=3000;
+function erf(x){const s=x<0?-1:1;x=Math.abs(x);const t=1/(1+0.3275911*x);
+const y=1-(((((1.061405429*t-1.453152027)*t)+1.421413741)*t-0.284496736)*t+0.254829592)*t*Math.exp(-x*x);return s*y}
+const cdf=z=>0.5*(1+erf(z/Math.SQRT2));
+const f1=x=>100*cdf(Math.log(x/273.5)/1.37);
+const f2=x=>100*cdf(Math.log(x/564.7)/1.13);
+const cv=document.getElementById('c'),ctx=cv.getContext('2d');
+const s=document.getElementById('s'),n=document.getElementById('n');
+const v=name=>getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+function draw(){
+const dpr=window.devicePixelRatio||1,W=cv.clientWidth,H=cv.clientHeight;
+cv.width=W*dpr;cv.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);
+const L=36,R=8,T=8,B=24,pw=W-L-R,ph=H-T-B;
+const X=x=>L+x/XMAX*pw,Y=y=>T+(1-y/100)*ph;
+ctx.clearRect(0,0,W,H);ctx.font='11px sans-serif';ctx.fillStyle=v('--fg');ctx.strokeStyle=v('--grid');ctx.lineWidth=1;
+for(let y=0;y<=100;y+=20){ctx.beginPath();ctx.moveTo(L,Y(y));ctx.lineTo(W-R,Y(y));ctx.stroke();ctx.textAlign='right';ctx.fillText(y,L-4,Y(y)+4)}
+for(let x=0;x<=XMAX;x+=500){ctx.beginPath();ctx.moveTo(X(x),T);ctx.lineTo(X(x),T+ph);ctx.stroke();ctx.textAlign='center';ctx.fillText(x,X(x),H-8)}
+function curve(f,c){ctx.strokeStyle=v(c);ctx.lineWidth=2;ctx.beginPath();
+for(let i=1;i<=600;i++){const x=i/600*XMAX;i==1?ctx.moveTo(X(x),Y(f(x))):ctx.lineTo(X(x),Y(f(x)))}ctx.stroke()}
+curve(f1,'--c1');curve(f2,'--c2');
+const xv=+s.value;
+ctx.strokeStyle=v('--c3');ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(X(xv),Y(0));ctx.lineTo(X(xv),Y(100));ctx.stroke();
+[[f1,'--c1'],[f2,'--c2']].forEach(([f,c])=>{ctx.fillStyle=v(c);ctx.beginPath();ctx.arc(X(xv),Y(f(xv)),4.5,0,7);ctx.fill()});
+document.getElementById('lx').textContent=xv;
+document.getElementById('info').textContent='y₁ = '+f1(xv).toFixed(2)+',  y₂ = '+f2(xv).toFixed(2);
+}
+s.oninput=()=>{n.value=s.value;draw()};
+n.oninput=()=>{const t=Math.min(XMAX,Math.max(1,+n.value||1));s.value=t;draw()};
+addEventListener('resize',draw);draw();
+</script>
+</body>
+</html>
